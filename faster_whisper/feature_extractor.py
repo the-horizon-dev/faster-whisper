@@ -21,6 +21,9 @@ class FeatureExtractor:
             sampling_rate, n_fft, n_mels=feature_size
         ).astype("float32")
 
+        # Pre-compute the Hann window so it can be reused for all calls
+        self._hann_window = np.hanning(self.n_fft + 1)[:-1].astype("float32")
+
     @staticmethod
     def get_mel_filters(sr, n_fft, n_mels=128):
         # Initialize the weights
@@ -83,16 +86,16 @@ class FeatureExtractor:
         input_is_complex = np.iscomplexobj(input_array)
 
         # Determine if the output should be complex
+        if not input_is_complex and return_complex is None:
+            raise ValueError(
+                "stft requires the return_complex parameter for real inputs."
+            )
+
         return_complex = (
             return_complex
             if return_complex is not None
             else (input_is_complex or (window is not None and np.iscomplexobj(window)))
         )
-
-        if not return_complex and return_complex is None:
-            raise ValueError(
-                "stft requires the return_complex parameter for real inputs."
-            )
 
         # Input checks
         if not np.issubdtype(input_array.dtype, np.floating) and not input_is_complex:
@@ -145,13 +148,15 @@ class FeatureExtractor:
                     f"but got window with size {window.shape}"
                 )
 
-        # Handle padding of the window if necessary
-        if win_length < n_fft:
-            left = (n_fft - win_length) // 2
-            window_ = np.zeros(n_fft, dtype=window.dtype)
-            window_[left : left + win_length] = window
+            # Handle padding of the window if necessary
+            if win_length < n_fft:
+                left = (n_fft - win_length) // 2
+                window_ = np.zeros(n_fft, dtype=window.dtype)
+                window_[left : left + win_length] = window
+            else:
+                window_ = window
         else:
-            window_ = window
+            window_ = None
 
         # Calculate the number of frames
         n_frames = 1 + (length - n_fft) // hop_length
@@ -210,16 +215,14 @@ class FeatureExtractor:
         if padding:
             waveform = np.pad(waveform, (0, padding))
 
-        window = np.hanning(self.n_fft + 1)[:-1].astype("float32")
-
         stft = self.stft(
             waveform,
             self.n_fft,
             self.hop_length,
-            window=window,
+            window=self._hann_window,
             return_complex=True,
         ).astype("complex64")
-        magnitudes = np.abs(stft[..., :-1]) ** 2
+        magnitudes = np.square(np.abs(stft[..., :-1]))
 
         mel_spec = self.mel_filters @ magnitudes
 
