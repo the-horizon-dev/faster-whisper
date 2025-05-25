@@ -59,10 +59,10 @@ def test_transcribe(jfk_path):
     )
 
 
-def test_batched_transcribe(physcisworks_path):
+def test_batched_transcribe(physicsworks_path):
     model = WhisperModel("tiny")
     batched_model = BatchedInferencePipeline(model=model)
-    result, info = batched_model.transcribe(physcisworks_path, batch_size=16)
+    result, info = batched_model.transcribe(physicsworks_path, batch_size=16)
     assert info.language == "en"
     assert info.language_probability > 0.7
     segments = []
@@ -74,7 +74,7 @@ def test_batched_transcribe(physcisworks_path):
     assert len(segments) == 7
 
     result, info = batched_model.transcribe(
-        physcisworks_path,
+        physicsworks_path,
         batch_size=16,
         without_timestamps=False,
         word_timestamps=True,
@@ -244,11 +244,11 @@ def test_transcribe_signature():
     assert model_transcribe_args == pipeline_transcribe_args
 
 
-def test_monotonic_timestamps(physcisworks_path):
+def test_monotonic_timestamps(physicsworks_path):
     model = WhisperModel("tiny")
     pipeline = BatchedInferencePipeline(model=model)
 
-    segments, info = model.transcribe(physcisworks_path, word_timestamps=True)
+    segments, info = model.transcribe(physicsworks_path, word_timestamps=True)
     segments = list(segments)
 
     for i in range(len(segments) - 1):
@@ -259,7 +259,7 @@ def test_monotonic_timestamps(physcisworks_path):
             assert word.end <= segments[i].end
     assert segments[-1].end <= info.duration
 
-    segments, info = pipeline.transcribe(physcisworks_path, word_timestamps=True)
+    segments, info = pipeline.transcribe(physicsworks_path, word_timestamps=True)
     segments = list(segments)
 
     for i in range(len(segments) - 1):

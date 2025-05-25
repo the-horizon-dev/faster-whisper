@@ -14,5 +14,5 @@ def jfk_path(data_dir):
 
 
 @pytest.fixture
-def physcisworks_path(data_dir):
+def physicsworks_path(data_dir):
     return os.path.join(data_dir, "physicsworks.wav")
